@@ -1,0 +1,39 @@
+name: iOS unsigned IPA (cluster worker)
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Tools
+        run: |
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          flutter --version
+      - name: Build llama.cpp for iOS (Metal + RPC)
+        run: bash local_plugins/llama_flutter_android/scripts/build_llama_ios.sh
+      - name: Flutter build (no codesign)
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+      - name: Package IPA
+        run: |
+          mkdir -p out/Payload
+          cp -R build/ios/iphoneos/Runner.app out/Payload/
+          cd out && zip -qry PrivateLM-cluster-unsigned.ipa Payload && ls -la
+          shasum -a 256 PrivateLM-cluster-unsigned.ipa | tee PrivateLM-cluster-unsigned.ipa.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrivateLM-cluster-unsigned-ipa
+          path: |
+            out/PrivateLM-cluster-unsigned.ipa
+            out/PrivateLM-cluster-unsigned.ipa.sha256
+          retention-days: 30
