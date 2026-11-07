@@ -13,6 +13,12 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Select newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          X=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
       - name: Tools
         run: |
           brew list ninja >/dev/null 2>&1 || brew install ninja
